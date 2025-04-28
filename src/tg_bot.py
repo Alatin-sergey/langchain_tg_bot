@@ -1,9 +1,10 @@
-from contextlib import asynccontextmanager
-from aiogram.filters import CommandStart, Command
-from fastapi import FastAPI, Request, HTTPException
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Update, Message
+from aiogram.filters import CommandStart
+from aiohttp import web
+
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from loguru import logger
+from aiogram import Bot, Dispatcher, Router
+from aiogram.types import Message
 from dotenv import load_dotenv
 import os
 
@@ -12,52 +13,42 @@ from frontend_utils import answer_chat
 load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')
+WEB_SERVER_HOST = os.getenv("WEB_SERVER_HOST")
+WEB_SERVER_PORT = int(os.getenv("WEB_SERVER_PORT"))
 WEBHOOK_PATH = os.getenv('WEBHOOK_PATH')
+WEBHOOK_URL = os.getenv('WEBHOOK_URL')
+
+router = Router()
 
 bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
 
-@asynccontextmanager
-async def lifespan(app : FastAPI):
+async def on_startup(bot: Bot) -> None:
     webhook_url = f'{WEBHOOK_URL}{WEBHOOK_PATH}'
     await bot.set_webhook(url=webhook_url,
-                           allowed_updates=dp.resolve_used_update_types(),
+                           allowed_updates=router.resolve_used_update_types(),
                            drop_pending_updates=True)
-    await bot.send_message(chat_id=741225895, text='Бот запущен')
-    logger.info(f'Вебхук установлен {webhook_url}')
-    yield
-    await bot.send_message(chat_id=741225895, text='Бот остановлен')
-    await bot.delete_webhook()
-    logger.info(f'Вебхук удален')
 
-app = FastAPI(lifespan=lifespan)
-
-@app.post(WEBHOOK_PATH)
-async def webhook_handler(request : Request):
-    """
-    Обработчик вебхуков
-    """
-    try:
-        update = Update(**await request.json())
-        await dp.feed_update(bot, update) # Передача обновления диспетчеру
-        return {'status':'ok'}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@dp.message(CommandStart())
-async def start_command_handler(message : Message):
+@router.message(CommandStart())
+async def start_command_handler(message : Message) -> None:
     await message.answer(f'Привет, {message.from_user.first_name}! Я работаю на вебхуках.')
 
-@dp.message()
-async def echo_answer(message : Message):
+@router.message()
+async def echo_answer(message : Message) -> None:
     results = await answer_chat(message)
     try:
-        # Send a copy of the received message
         await message.answer(results)
     except TypeError:
-        # But not all the types is supported to be copied so need to handle it
         await message.answer("Nice try!")
 
+def main() -> None:
+    dp = Dispatcher()
+    dp.include_router(router)
+    dp.startup.register(on_startup)
+    app = web.Application()
+    webhook_requests_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+    web.run_app(app, host='localhost', port=WEB_SERVER_PORT)
 
-
+if __name__ == "__main__":
+    main()
