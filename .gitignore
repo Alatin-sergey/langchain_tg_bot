@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+
+# OS generated files #
+.DS_Store
+Thumbs.db
+
+# Specific files or directories
+/src/__pycache__/
