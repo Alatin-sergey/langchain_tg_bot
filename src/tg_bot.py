@@ -18,23 +18,23 @@ WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT')
 CONNECTION_TYPE = os.getenv('CONNECTION_TYPE')
 
-router = Router()
+dp = Dispatcher()
 bot = Bot(token=BOT_TOKEN)
 
 async def on_startup(bot: Bot) -> None:
     await bot.set_webhook(
         url=f'{WEBHOOK_URL}{WEBHOOK_PATH}',
-        allowed_updates=router.resolve_used_update_types(),
+        allowed_updates=dp.resolve_used_update_types(),
         drop_pending_updates=True,
         )
 
 
-@router.message(CommandStart())
+@dp.message(CommandStart())
 async def start_command_handler(message : Message) -> None:
     await message.answer(f'Привет, {message.from_user.first_name}! Я работаю на вебхуках.')
 
 
-@router.message()
+@dp.message()
 async def echo_answer(massege : Message) -> None:
     async with ClientSession() as session:
         response = await session.post(url=BACKEND_ENDPOINT, json={'text' : massege.text})
@@ -45,8 +45,6 @@ async def echo_answer(massege : Message) -> None:
 
 
 def main() -> None:
-    dp = Dispatcher()
-    dp.include_router(router)
     dp.startup.register(on_startup)
     app = web.Application()
     webhook_requests_handler = SimpleRequestHandler(dispatcher=dp, bot=bot)
@@ -57,8 +55,6 @@ def main() -> None:
 
 async def main_polling() -> None:
     await bot.delete_webhook(drop_pending_updates=True)
-    dp = Dispatcher()
-    dp.include_router(router)
     await dp.start_polling(bot)
 
 

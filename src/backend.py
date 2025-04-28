@@ -1,44 +1,22 @@
 from typing import Dict, Any
 from fastapi import FastAPI
 from loguru import logger
-from langchain_community.llms import Ollama
-from langchain_core.prompts import PromptTemplate
-from langchain.chains import ConversationChain
-from langchain.chains.conversation.memory import ConversationBufferMemory
-import asyncio
-import json
 from dotenv import load_dotenv
 import os
+from chat_backend import Local_LLM
+import uvicorn
 
 load_dotenv()
 
-llm_url = os.getenv('LLM_URL')
-llm = Ollama(
-    model='mistral', 
-    base_url=llm_url,
-    )
+model = Local_LLM(model='mistral', base_url=os.getenv('LLM_URL'))
 
-memory = ConversationBufferMemory()
 app = FastAPI()
+
 
 @app.post('/get_answer/')
 async def get_answer(item : Dict[str, Any]) -> Dict[str, Any]:
     logger.info(f'В LLM отправлено сообщение {item['text']}')
-    template = """Говори на русском языке
-    {history}
-    Human: {input}
-    AI:"""
-    prompt = PromptTemplate(
-        input_variables=["history", "input"],
-        template=template,
-    )
+    return {'text': model.generate(input = item['text'])}
 
-    conversation = ConversationChain(
-        llm=llm,
-        memory=memory,
-        prompt=prompt,
-        verbose=True,
-    )
-
-    output = conversation.invoke({'input': item['text']})
-    return {'text': output['response']}
+if __name__ == "__main__":
+    uvicorn.run("backend:app", host='0.0.0.0', port=8001)
