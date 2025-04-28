@@ -34,17 +34,12 @@ async def start_command_handler(message : Message) -> None:
 
 @router.message()
 async def echo_answer(massege : Message) -> None:
-    data = {'text' : massege.text}
-    async with ClientSession().post(url=BACKEND_ENDPOINT, json=data) as response:
-        try:
-            response.raise_for_status()
-            response_data = await response.json()
-            logger.info(f'From LLM: {response_data}')
-            answer = response_data['text']
-        except Exception:
-            answer = response_data['text']
-        response.close()
-    await massege.answer(answer) 
+    async with ClientSession() as session:
+        response = await session.post(url=BACKEND_ENDPOINT, json={'text' : massege.text})
+        result = await response.json()
+        logger.info(f'From LLM: {result['text']}')
+        await response.close()
+    await massege.answer(result['text']) 
 
 
 
