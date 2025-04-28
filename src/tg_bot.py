@@ -1,3 +1,4 @@
+import asyncio
 from aiogram.filters import CommandStart
 from aiohttp import web, ClientSession
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -15,6 +16,7 @@ WEB_SERVER_PORT = int(os.getenv("WEB_SERVER_PORT"))
 WEBHOOK_PATH = os.getenv('WEBHOOK_PATH')
 WEBHOOK_URL = os.getenv('WEBHOOK_URL')
 BACKEND_ENDPOINT = os.getenv('BACKEND_ENDPOINT')
+CONNECTION_TYPE = os.getenv('CONNECTION_TYPE')
 
 router = Router()
 bot = Bot(token=BOT_TOKEN)
@@ -38,9 +40,8 @@ async def echo_answer(massege : Message) -> None:
         response = await session.post(url=BACKEND_ENDPOINT, json={'text' : massege.text})
         result = await response.json()
         logger.info(f'From LLM: {result['text']}')
-        await response.close()
+        response.close()
     await massege.answer(result['text']) 
-
 
 
 def main() -> None:
@@ -54,5 +55,15 @@ def main() -> None:
     web.run_app(app, host='localhost', port=WEB_SERVER_PORT)
 
 
+async def main_polling() -> None:
+    await bot.delete_webhook(drop_pending_updates=True)
+    dp = Dispatcher()
+    dp.include_router(router)
+    await dp.start_polling(bot)
+
+
 if __name__ == "__main__":
-    main()
+    if CONNECTION_TYPE == 'POLLING':
+        asyncio.run(main_polling())
+    else:
+        main()
