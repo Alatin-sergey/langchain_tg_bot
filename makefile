@@ -3,7 +3,7 @@
 all: update_env_file
 
 update_env_file:
-	python -c "import shutil; shutil.copyfile('./env.example', './.env')"
+	cat ./env.example > ./.env
 
 create_venv:
 	python -m venv .venv
