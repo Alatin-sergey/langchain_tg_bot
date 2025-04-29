@@ -14,7 +14,7 @@ class Local_LLM(BaseModel):
         self.llm = Ollama(
             model=model, 
             base_url=base_url,
-)
+        )
         
         self.template = """Говори на русском языке.
             {history}
@@ -24,7 +24,7 @@ class Local_LLM(BaseModel):
         self.prompt_template = PromptTemplate(
             input_variables=["history", "input"],
             template=self.template,
-)
+        )
         
         self.memory = ConversationBufferMemory()
 
@@ -35,6 +35,6 @@ class Local_LLM(BaseModel):
             memory=self.memory,
             prompt=self.prompt_template,
             verbose=True,
-)
+        )
 
         return conversation.invoke({"input": input})["response"]

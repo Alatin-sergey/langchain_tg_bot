@@ -22,4 +22,4 @@ if __name__ == "__main__":
         "backend:app", 
         host=os.getenv("BACKEND_HOST"), 
         port=int(os.getenv("BACKEND_PORT")),
-)
+    )

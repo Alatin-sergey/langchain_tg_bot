@@ -29,7 +29,7 @@ async def on_startup(bot: Bot) -> None:
         url=f"{WEBHOOK_URL}{WEBHOOK_PATH}",
         allowed_updates=dp.resolve_used_update_types(),
         drop_pending_updates=True,
-)
+    )
 
 
 @dp.message(CommandStart())
@@ -43,7 +43,7 @@ async def echo_answer(massege: Message) -> None:
         response = await session.post(
             url=BACKEND_ENDPOINT, 
             json={"text": massege.text},
-)
+        )
         result = await response.json()
         response.close()
     await massege.answer(result["text"]) 
